@@ -2,64 +2,64 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Tombola v7 - Gruppo Giovani V. Nigro</title>
+    <title>Tombola - Gruppo Giovani V. Nigro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        /* Reset Margini per eliminare fogli bianchi */
+        /* Reset totale per evitare pagine bianche */
         @page { size: A4; margin: 0; }
-        html, body { margin: 0; padding: 0; width: 100%; }
-
-        body { font-family: 'Helvetica', Arial, sans-serif; background-color: #f0f0f0; }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; width: 210mm; background-color: #f0f0f0; }
 
         .no-print { 
-            background: #fff; padding: 20px; text-align: center;
+            width: 100vw; background: #fff; padding: 20px; text-align: center;
             border-bottom: 2px solid #333; position: sticky; top: 0; z-index: 1000;
         }
-        input { padding: 8px; margin: 5px; border: 1px solid #ccc; }
-        button { padding: 10px 20px; cursor: pointer; border: none; font-weight: bold; border-radius: 4px; margin: 5px; }
-        .btn-gen { background: #c0392b; color: white; }
-        .btn-pdf { background: #27ae60; color: white; }
+        input { padding: 8px; margin: 5px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 20px; cursor: pointer; border: none; font-weight: bold; border-radius: 4px; margin: 5px; color: white; }
+        .btn-gen { background: #c0392b; }
+        .btn-print { background: #2c3e50; }
+        .btn-pdf { background: #27ae60; }
 
-        /* Layout Area di Stampa */
+        /* Contenitore di stampa */
         #print-area { width: 210mm; margin: 0 auto; background: #fff; }
 
         .page {
             width: 210mm;
-            height: 297mm;
-            padding: 8mm 10mm; /* Margini interni minimi */
-            box-sizing: border-box;
+            height: 296.5mm; /* Leggermente meno di 297 per evitare overflow */
+            padding: 10mm 12mm;
             display: flex;
             flex-direction: column;
-            justify-content: space-between; /* Distribuisce le 4 cartelle su tutta l'altezza */
-            position: relative;
-            overflow: hidden;
+            justify-content: flex-start;
             page-break-after: always;
+            overflow: hidden;
         }
 
-        /* Rimuove l'interruzione di pagina sull'ultima pagina per evitare il foglio bianco */
-        .page:last-child { page-break-after: avoid; }
+        /* Rimuove l'ultima interruzione di pagina */
+        .page:last-of-type { page-break-after: avoid !important; }
 
         .cartella-wrapper {
-            width: 100%; /* Prende tutta la larghezza */
+            width: 100%;
             height: 68mm;
+            margin-bottom: 2mm;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            border-bottom: 1px dashed #ccc;
+            border-bottom: 1px dashed #bbb;
         }
-        .cartella-wrapper:last-child { border-bottom: none; }
+        .cartella-wrapper:last-child { border-bottom: none; margin-bottom: 0; }
 
         .header-row {
             display: flex;
             justify-content: space-between;
             width: 100%;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
             font-size: 13px;
             font-weight: bold;
+            font-family: sans-serif;
         }
 
         table { 
-            width: 100%; /* Occupa tutto lo spazio del wrapper */
+            width: 100%;
             border-collapse: collapse; 
             table-layout: fixed; 
             border: 3px solid #000;
@@ -68,17 +68,18 @@
             border: 2px solid #000;
             height: 18mm; 
             text-align: center;
-            font-size: 44px; 
+            font-size: 42px; 
             font-weight: 900; 
             color: #000;
             line-height: 1;
+            font-family: 'Arial Black', Gadget, sans-serif;
         }
         .empty { background-color: #fff; }
 
         @media print {
             body { background: none; }
             .no-print { display: none; }
-            #print-area { margin: 0; width: 210mm; }
+            #print-area { margin: 0; }
         }
     </style>
 </head>
@@ -87,17 +88,53 @@
 <div class="no-print">
     <input type="text" id="titoloInput" value="Tombola Gruppo Giovani V. Nigro Seconda mano">
     <input type="number" id="qty" value="4" min="1">
-    <button class="btn-gen" onclick="generate()">Genera Cartelle</button>
+    <button class="btn-gen" onclick="generate()">Genera</button>
+    <button class="btn-print" onclick="window.print()">Stampa</button>
     <button class="btn-pdf" onclick="downloadPDF()">Scarica PDF</button>
-    <p style="font-size: 12px; color: #666;">Consiglio: In fase di stampa seleziona "Margini: Nessuno" e "Scala: 100%"</p>
 </div>
 
 <div id="print-area"></div>
 
 <script>
+// Algoritmo avanzato: garantisce 5 numeri per riga e nessuna colonna vuota
 function createTombolaMatrix() {
-    let grid = Array.from({ length: 3 }, () => Array(9).fill(null));
-    let columns = Array.from({ length: 9 }, (_, i) => {
+    let grid;
+    let valid = false;
+
+    while (!valid) {
+        grid = Array.from({ length: 3 }, () => Array(9).fill(null));
+        let rowCounts = [0, 0, 0];
+        let colCounts = Array(9).fill(0);
+
+        // Fase 1: Assicuriamo almeno un numero per ogni colonna
+        for (let c = 0; c < 9; c++) {
+            let r = Math.floor(Math.random() * 3);
+            grid[r][c] = true;
+            rowCounts[r]++;
+            colCounts[c]++;
+        }
+
+        // Fase 2: Riempiamo fino a raggiungere 15 numeri totali (5 per riga)
+        let attempts = 0;
+        while (rowCounts.some(count => count < 5) && attempts < 100) {
+            let r = rowCounts.findIndex(count => count < 5);
+            let c = Math.floor(Math.random() * 9);
+            if (grid[r][c] === null) {
+                grid[r][c] = true;
+                rowCounts[r]++;
+                colCounts[c]++;
+            }
+            attempts++;
+        }
+
+        // Controllo validità: 5 numeri per riga e ogni colonna deve avere almeno 1 numero
+        if (rowCounts.every(count => count === 5) && colCounts.every(count => count > 0)) {
+            valid = true;
+        }
+    }
+
+    // Fase 3: Inserimento numeri reali in base alle decine
+    let columnsPool = Array.from({ length: 9 }, (_, i) => {
         let min = i === 0 ? 1 : i * 10;
         let max = i === 8 ? 90 : i * 10 + 9;
         let nums = [];
@@ -105,21 +142,16 @@ function createTombolaMatrix() {
         return nums.sort(() => Math.random() - 0.5);
     });
 
-    for (let r = 0; r < 3; r++) {
-        let selectedCols = [];
-        while(selectedCols.length < 5) {
-            let c = Math.floor(Math.random() * 9);
-            if (!selectedCols.includes(c)) selectedCols.push(c);
-        }
-        selectedCols.forEach(c => { grid[r][c] = columns[c].pop(); });
-    }
-
     for (let c = 0; c < 9; c++) {
-        let colValues = [];
-        for (let r = 0; r < 3; r++) if (grid[r][c] !== null) colValues.push(grid[r][c]);
-        colValues.sort((a, b) => a - b);
+        let vals = [];
+        for (let r = 0; r < 3; r++) {
+            if (grid[r][c] === true) vals.push(columnsPool[c].pop());
+        }
+        vals.sort((a, b) => a - b);
         let idx = 0;
-        for (let r = 0; r < 3; r++) if (grid[r][c] !== null) grid[r][c] = colValues[idx++];
+        for (let r = 0; r < 3; r++) {
+            if (grid[r][c] === true) grid[r][c] = vals[idx++];
+        }
     }
     return grid;
 }
@@ -167,9 +199,9 @@ function downloadPDF() {
     const element = document.getElementById('print-area');
     const opt = {
         margin: 0,
-        filename: 'cartelle_tombola.pdf',
-        image: { type: 'jpeg', quality: 1 },
-        html2canvas: { scale: 2, useCORS: true },
+        filename: 'tombola_giovani.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     html2pdf().set(opt).from(element).save();
