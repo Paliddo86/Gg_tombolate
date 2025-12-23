@@ -2,12 +2,12 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Tombola - Gruppo Giovani V. Nigro</title>
+    <title>Tombola Pro - Gruppo Giovani V. Nigro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        /* Reset totale per evitare pagine bianche */
+        /* Reset totale per eliminare pagine bianche */
         @page { size: A4; margin: 0; }
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; -webkit-print-color-adjust: exact; }
         html, body { margin: 0; padding: 0; width: 210mm; background-color: #f0f0f0; }
 
         .no-print { 
@@ -20,31 +20,32 @@
         .btn-print { background: #2c3e50; }
         .btn-pdf { background: #27ae60; }
 
-        /* Contenitore di stampa */
+        /* Area di stampa centrata */
         #print-area { width: 210mm; margin: 0 auto; background: #fff; }
 
         .page {
             width: 210mm;
-            height: 296.5mm; /* Leggermente meno di 297 per evitare overflow */
-            padding: 10mm 12mm;
+            height: 297mm;
+            padding: 10mm 15mm; /* Margini più ampi per centratura perfetta */
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
             page-break-after: always;
             overflow: hidden;
+            background: white;
         }
 
-        /* Rimuove l'ultima interruzione di pagina */
+        /* Forza la rimozione dell'interruzione sull'ultima pagina */
         .page:last-of-type { page-break-after: avoid !important; }
 
         .cartella-wrapper {
             width: 100%;
-            height: 68mm;
-            margin-bottom: 2mm;
+            height: 64mm; /* Altezza ridotta per evitare overflow */
+            margin-bottom: 3mm;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            border-bottom: 1px dashed #bbb;
+            border-bottom: 1px dashed #ccc;
         }
         .cartella-wrapper:last-child { border-bottom: none; margin-bottom: 0; }
 
@@ -52,34 +53,35 @@
             display: flex;
             justify-content: space-between;
             width: 100%;
-            margin-bottom: 4px;
-            font-size: 13px;
+            margin-bottom: 3px;
+            font-size: 12px;
             font-weight: bold;
-            font-family: sans-serif;
+            font-family: Arial, sans-serif;
         }
 
         table { 
             width: 100%;
             border-collapse: collapse; 
             table-layout: fixed; 
-            border: 3px solid #000;
+            border: 2.5px solid #000;
         }
         td {
-            border: 2px solid #000;
-            height: 18mm; 
+            border: 1.8px solid #000;
+            height: 17mm; /* Leggermente ridotta per proporzione */
             text-align: center;
-            font-size: 42px; 
+            font-size: 40px; 
             font-weight: 900; 
             color: #000;
             line-height: 1;
-            font-family: 'Arial Black', Gadget, sans-serif;
+            font-family: 'Arial Black', sans-serif;
         }
         .empty { background-color: #fff; }
 
         @media print {
             body { background: none; }
             .no-print { display: none; }
-            #print-area { margin: 0; }
+            #print-area { margin: 0; width: 210mm; }
+            .page { border: none; box-shadow: none; }
         }
     </style>
 </head>
@@ -88,15 +90,15 @@
 <div class="no-print">
     <input type="text" id="titoloInput" value="Tombola Gruppo Giovani V. Nigro Seconda mano">
     <input type="number" id="qty" value="4" min="1">
-    <button class="btn-gen" onclick="generate()">Genera</button>
-    <button class="btn-print" onclick="window.print()">Stampa</button>
-    <button class="btn-pdf" onclick="downloadPDF()">Scarica PDF</button>
+    <button class="btn-gen" onclick="generate()">Genera Nuove</button>
+    <button class="btn-print" onclick="window.print()">Stampa Browser</button>
+    <button class="btn-pdf" onclick="downloadPDF()">Salva PDF Diretto</button>
+    <p style="font-size: 11px; color: #777;">Nota: Se usi "Stampa Browser", imposta Margini su 'Nessuno' nelle opzioni.</p>
 </div>
 
 <div id="print-area"></div>
 
 <script>
-// Algoritmo avanzato: garantisce 5 numeri per riga e nessuna colonna vuota
 function createTombolaMatrix() {
     let grid;
     let valid = false;
@@ -106,7 +108,6 @@ function createTombolaMatrix() {
         let rowCounts = [0, 0, 0];
         let colCounts = Array(9).fill(0);
 
-        // Fase 1: Assicuriamo almeno un numero per ogni colonna
         for (let c = 0; c < 9; c++) {
             let r = Math.floor(Math.random() * 3);
             grid[r][c] = true;
@@ -114,9 +115,8 @@ function createTombolaMatrix() {
             colCounts[c]++;
         }
 
-        // Fase 2: Riempiamo fino a raggiungere 15 numeri totali (5 per riga)
         let attempts = 0;
-        while (rowCounts.some(count => count < 5) && attempts < 100) {
+        while (rowCounts.some(count => count < 5) && attempts < 200) {
             let r = rowCounts.findIndex(count => count < 5);
             let c = Math.floor(Math.random() * 9);
             if (grid[r][c] === null) {
@@ -127,13 +127,11 @@ function createTombolaMatrix() {
             attempts++;
         }
 
-        // Controllo validità: 5 numeri per riga e ogni colonna deve avere almeno 1 numero
         if (rowCounts.every(count => count === 5) && colCounts.every(count => count > 0)) {
             valid = true;
         }
     }
 
-    // Fase 3: Inserimento numeri reali in base alle decine
     let columnsPool = Array.from({ length: 9 }, (_, i) => {
         let min = i === 0 ? 1 : i * 10;
         let max = i === 8 ? 90 : i * 10 + 9;
@@ -199,9 +197,9 @@ function downloadPDF() {
     const element = document.getElementById('print-area');
     const opt = {
         margin: 0,
-        filename: 'tombola_giovani.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
+        filename: 'cartelle_tombola.pdf',
+        image: { type: 'jpeg', quality: 1 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     html2pdf().set(opt).from(element).save();
