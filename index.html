@@ -2,86 +2,82 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Generatore Cartelle Tombola A4</title>
+    <title>Generatore Cartelle Tombola Professionale</title>
     <style>
-        :root { --border-color: #333; }
-        body { font-family: Arial, sans-serif; margin: 0; background-color: #f0f0f0; }
+        @page { size: A4; margin: 5mm; }
+        body { font-family: 'Helvetica', 'Arial', sans-serif; margin: 0; background-color: #f0f0f0; }
 
-        /* Controlli UI */
+        /* UI di controllo */
         .no-print { 
-            background: #fff; padding: 15px; text-align: center;
-            border-bottom: 2px solid #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            background: #fff; padding: 20px; text-align: center;
+            border-bottom: 2px solid #333; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        .controls-group { margin: 10px; display: inline-block; text-align: left; }
-        input[type="text"] { width: 250px; padding: 5px; }
-        input[type="number"] { width: 50px; padding: 5px; }
-        button { padding: 6px 15px; cursor: pointer; background: #27ae60; color: white; border: none; border-radius: 4px; font-weight: bold; }
+        .controls-group { margin: 10px; display: inline-block; text-align: left; vertical-align: top; }
+        input[type="text"] { width: 350px; padding: 10px; border: 1px solid #ccc; font-size: 14px; }
+        input[type="number"] { width: 70px; padding: 10px; border: 1px solid #ccc; font-size: 14px; }
+        button { padding: 11px 25px; cursor: pointer; background: #c0392b; color: white; border: none; font-weight: bold; text-transform: uppercase; border-radius: 4px; }
+        button:hover { background: #a93226; }
 
-        /* Layout A4 */
+        /* Layout Pagina A4 */
         .page {
             width: 210mm;
-            min-height: 297mm;
-            padding: 10mm;
+            height: 297mm;
             margin: 10mm auto;
             background: white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            padding: 8mm 12mm;
+            box-sizing: border-box;
+            page-break-after: always;
             display: flex;
             flex-direction: column;
-            box-sizing: border-box;
         }
 
-        .cartella-wrapper {
-            height: 68mm; /* Altezza calcolata per farne stare 4 in un A4 */
+        /* Cartella Dimensioni PDF */
+        .cartella-container {
+            width: 186mm; 
+            height: 70mm;  /* Altezza perfetta per 4 cartelle su A4 */
+            margin: 0 auto;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            position: relative;
-            border-bottom: 1px dashed #aaa; /* Linea di taglio */
-        }
-        .cartella-wrapper:last-child { border-bottom: none; }
-
-        .cartella {
-            border: 2px solid var(--border-color);
-            padding: 5px;
-            width: 100%;
+            border-bottom: 1.5px dashed #666; /* Linea di taglio */
             box-sizing: border-box;
         }
+        .cartella-container:last-child { border-bottom: none; }
 
-        /* Intestazione ridotta */
         .header-row {
             display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 2px;
-        }
-        .titolo-personalizzato {
+            width: 100%;
+            margin-bottom: 4px;
+            font-size: 12px;
             font-weight: bold;
-            font-size: 14px;
-            text-transform: uppercase;
-            flex-grow: 1;
-            text-align: center;
         }
-        .cartella-id {
-            font-size: 11px;
-            color: #444;
-            width: 100px; /* Sposta il numero a sinistra */
-        }
+        .id-label { width: 30%; text-align: left; }
+        .titolo-label { width: 70%; text-align: right; text-transform: uppercase; }
 
-        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        td {
-            border: 1.5px solid var(--border-color);
-            height: 16mm; /* Altezza celle ottimizzata */
-            text-align: center;
-            font-size: 26px;
-            font-weight: bold;
+        table { 
+            width: 186mm; 
+            border-collapse: collapse; 
+            table-layout: fixed; 
+            border: 2.5px solid #000;
         }
-        .empty { background-color: #f9f9f9; }
+        td {
+            border: 2px solid #000;
+            height: 18mm; 
+            text-align: center;
+            vertical-align: middle;
+            /* Numeri più grandi e in grassetto estremo */
+            font-size: 42px; 
+            font-weight: 900; 
+            color: #000;
+            padding: 0;
+            line-height: 1;
+        }
+        .empty { background-color: #fff; }
 
         @media print {
-            body { background: none; }
+            body { background: none; margin: 0; }
             .no-print { display: none; }
-            .page { margin: 0; box-shadow: none; border: none; }
-            .cartella-wrapper { border-bottom: 1px dashed #000; } /* Linea di taglio visibile in stampa */
+            .page { margin: 0; box-shadow: none; }
         }
     </style>
 </head>
@@ -89,20 +85,21 @@
 
 <div class="no-print">
     <div class="controls-group">
-        <label>Titolo Intestazione:</label><br>
+        <label>Titolo Personalizzabile:</label><br>
         <input type="text" id="titoloInput" value="Tombola Gruppo Giovani V. Nigro Seconda mano">
     </div>
     <div class="controls-group">
-        <label>N° Cartelle:</label><br>
+        <label>Totale Cartelle:</label><br>
         <input type="number" id="qty" value="12" min="1">
     </div>
-    <button onclick="generate()">Genera e Aggiorna</button>
-    <button onclick="window.print()" style="background:#2980b9">Stampa PDF</button>
+    <button onclick="generate()">Aggiorna e Genera</button>
+    <button onclick="window.print()" style="background:#2c3e50">Stampa / Salva PDF</button>
 </div>
 
-<div id="print-area"></div>
+<div id="content"></div>
 
 <script>
+// Algoritmo di generazione nel rispetto delle regole della tombola
 function createTombolaMatrix() {
     let grid = Array.from({ length: 3 }, () => Array(9).fill(null));
     let columns = Array.from({ length: 9 }, (_, i) => {
@@ -113,6 +110,7 @@ function createTombolaMatrix() {
         return nums.sort(() => Math.random() - 0.5);
     });
 
+    // Piazza i numeri assicurando 5 per riga e almeno uno per colonna
     for (let r = 0; r < 3; r++) {
         let selectedCols = [];
         while(selectedCols.length < 5) {
@@ -124,6 +122,7 @@ function createTombolaMatrix() {
         });
     }
 
+    // Ordina i numeri verticalmente per colonna
     for (let c = 0; c < 9; c++) {
         let colValues = [];
         for (let r = 0; r < 3; r++) if (grid[r][c] !== null) colValues.push(grid[r][c]);
@@ -135,31 +134,29 @@ function createTombolaMatrix() {
 }
 
 function generate() {
-    const container = document.getElementById('print-area');
+    const content = document.getElementById('content');
     const qty = parseInt(document.getElementById('qty').value);
     const titolo = document.getElementById('titoloInput').value;
-    container.innerHTML = '';
+    content.innerHTML = '';
 
     let currentPage;
     for (let i = 0; i < qty; i++) {
-        // Crea una nuova pagina ogni 4 cartelle
         if (i % 4 === 0) {
             currentPage = document.createElement('div');
             currentPage.className = 'page';
-            container.appendChild(currentPage);
+            content.appendChild(currentPage);
         }
 
         const matrix = createTombolaMatrix();
-        const wrapper = document.createElement('div');
-        wrapper.className = 'cartella-wrapper';
+        const container = document.createElement('div');
+        container.className = 'cartella-container';
 
         let html = `
             <div class="header-row">
-                <div class="cartella-id">Cartella #${i + 1}</div>
-                <div class="titolo-personalizzato">${titolo}</div>
-                <div style="width:100px"></div> </div>
-            <div class="cartella">
-                <table>`;
+                <div class="id-label">N. ${i + 1}</div>
+                <div class="titolo-label">${titolo}</div>
+            </div>
+            <table>`;
         
         matrix.forEach(row => {
             html += '<tr>';
@@ -169,13 +166,12 @@ function generate() {
             html += '</tr>';
         });
 
-        html += `</table></div>`;
-        wrapper.innerHTML = html;
-        currentPage.appendChild(wrapper);
+        html += `</table>`;
+        container.innerHTML = html;
+        currentPage.appendChild(container);
     }
 }
 
-// Inizializza
 generate();
 </script>
 
