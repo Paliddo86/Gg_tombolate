@@ -2,86 +2,109 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generatore Cartelle - Gruppo Giovani V. Nigro</title>
+    <title>Generatore Cartelle Tombola A4</title>
     <style>
-        :root { --border-color: #000; }
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
-        
+        :root { --border-color: #333; }
+        body { font-family: Arial, sans-serif; margin: 0; background-color: #f0f0f0; }
+
         /* Controlli UI */
         .no-print { 
-            background: #fff; padding: 20px; border-radius: 8px; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 30px; text-align: center;
+            background: #fff; padding: 15px; text-align: center;
+            border-bottom: 2px solid #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-        input { padding: 8px; width: 60px; border: 1px solid #ccc; border-radius: 4px; }
-        button { 
-            padding: 8px 20px; cursor: pointer; background: #27ae60; 
-            color: white; border: none; border-radius: 4px; font-weight: bold; 
-        }
-        button:hover { background: #219150; }
+        .controls-group { margin: 10px; display: inline-block; text-align: left; }
+        input[type="text"] { width: 250px; padding: 5px; }
+        input[type="number"] { width: 50px; padding: 5px; }
+        button { padding: 6px 15px; cursor: pointer; background: #27ae60; color: white; border: none; border-radius: 4px; font-weight: bold; }
 
-        /* Layout Cartella simile al PDF */
-        .cartelle-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
-        
+        /* Layout A4 */
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 10mm;
+            margin: 10mm auto;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        .cartella-wrapper {
+            height: 68mm; /* Altezza calcolata per farne stare 4 in un A4 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            border-bottom: 1px dashed #aaa; /* Linea di taglio */
+        }
+        .cartella-wrapper:last-child { border-bottom: none; }
+
         .cartella {
-            width: 650px; background: #fff; border: 2px solid var(--border-color);
-            padding: 15px; position: relative; box-sizing: border-box;
-            page-break-inside: avoid; margin-bottom: 10px;
+            border: 2px solid var(--border-color);
+            padding: 5px;
+            width: 100%;
+            box-sizing: border-box;
         }
 
-        .header-titolo {
-            text-align: center; font-weight: bold; font-size: 18px;
-            margin-bottom: 2px; text-transform: uppercase;
+        /* Intestazione ridotta */
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 2px;
         }
-        .header-sub {
-            text-align: center; font-size: 10px; color: #666;
-            margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;
+        .titolo-personalizzato {
+            font-weight: bold;
+            font-size: 14px;
+            text-transform: uppercase;
+            flex-grow: 1;
+            text-align: center;
+        }
+        .cartella-id {
+            font-size: 11px;
+            color: #444;
+            width: 100px; /* Sposta il numero a sinistra */
         }
 
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         td {
-            border: 1.5px solid var(--border-color); height: 55px;
-            text-align: center; font-size: 28px; font-weight: 800; width: 11.11%;
+            border: 1.5px solid var(--border-color);
+            height: 16mm; /* Altezza celle ottimizzata */
+            text-align: center;
+            font-size: 26px;
+            font-weight: bold;
         }
-        .empty { background-color: #fafafa; }
+        .empty { background-color: #f9f9f9; }
 
         @media print {
+            body { background: none; }
             .no-print { display: none; }
-            body { background: #fff; margin: 0; }
-            .cartella { margin: 10px auto; border-width: 1px; }
-            .cartelle-container { display: block; }
+            .page { margin: 0; box-shadow: none; border: none; }
+            .cartella-wrapper { border-bottom: 1px dashed #000; } /* Linea di taglio visibile in stampa */
         }
     </style>
 </head>
 <body>
 
 <div class="no-print">
-    <h1>Generatore Cartelle Tombola</h1>
-    <p>Inserisci il numero di cartelle che vuoi creare per il <strong>Gruppo Giovani V. Nigro</strong>:</p>
-    <input type="number" id="qty" value="6" min="1">
-    <button onclick="generate()">Genera Cartelle</button>
-    <button onclick="window.print()" style="background:#2980b9">Stampa / Salva PDF</button>
+    <div class="controls-group">
+        <label>Titolo Intestazione:</label><br>
+        <input type="text" id="titoloInput" value="Tombola Gruppo Giovani V. Nigro Seconda mano">
+    </div>
+    <div class="controls-group">
+        <label>N° Cartelle:</label><br>
+        <input type="number" id="qty" value="12" min="1">
+    </div>
+    <button onclick="generate()">Genera e Aggiorna</button>
+    <button onclick="window.print()" style="background:#2980b9">Stampa PDF</button>
 </div>
 
-<div id="main-container" class="cartelle-container"></div>
+<div id="print-area"></div>
 
 <script>
-function generate() {
-    const container = document.getElementById('main-container');
-    const qty = document.getElementById('qty').value;
-    container.innerHTML = '';
-
-    for (let i = 0; i < qty; i++) {
-        const matrix = createTombolaMatrix();
-        renderCartella(matrix, i + 1, container);
-    }
-}
-
 function createTombolaMatrix() {
-    // Inizializza matrice 3x9 vuota
     let grid = Array.from({ length: 3 }, () => Array(9).fill(null));
-    
-    // Definisci i range delle decine
     let columns = Array.from({ length: 9 }, (_, i) => {
         let min = i === 0 ? 1 : i * 10;
         let max = i === 8 ? 90 : i * 10 + 9;
@@ -90,7 +113,6 @@ function createTombolaMatrix() {
         return nums.sort(() => Math.random() - 0.5);
     });
 
-    // Per ogni riga, scegliamo 5 colonne casuali
     for (let r = 0; r < 3; r++) {
         let selectedCols = [];
         while(selectedCols.length < 5) {
@@ -102,45 +124,58 @@ function createTombolaMatrix() {
         });
     }
 
-    // Validazione: assicuriamoci che non ci siano colonne vuote (raro ma possibile)
-    // E ordiniamo i numeri per colonna (regola ufficiale)
     for (let c = 0; c < 9; c++) {
         let colValues = [];
-        for (let r = 0; r < 3; r++) {
-            if (grid[r][c] !== null) colValues.push(grid[r][c]);
-        }
+        for (let r = 0; r < 3; r++) if (grid[r][c] !== null) colValues.push(grid[r][c]);
         colValues.sort((a, b) => a - b);
         let idx = 0;
-        for (let r = 0; r < 3; r++) {
-            if (grid[r][c] !== null) grid[r][c] = colValues[idx++];
-        }
+        for (let r = 0; r < 3; r++) if (grid[r][c] !== null) grid[r][c] = colValues[idx++];
     }
     return grid;
 }
 
-function renderCartella(matrix, id, target) {
-    const cardDiv = document.createElement('div');
-    cardDiv.className = 'cartella';
-    
-    let tableHtml = `
-        <div class="header-titolo">Tombola Gruppo Giovani V. Nigro Seconda mano</div>
-        <div class="header-sub">Cartella #${id} - Generata dinamicamente</div>
-        <table>`;
-    
-    matrix.forEach(row => {
-        tableHtml += '<tr>';
-        row.forEach(cell => {
-            tableHtml += cell ? `<td>${cell}</td>` : '<td class="empty"></td>';
+function generate() {
+    const container = document.getElementById('print-area');
+    const qty = parseInt(document.getElementById('qty').value);
+    const titolo = document.getElementById('titoloInput').value;
+    container.innerHTML = '';
+
+    let currentPage;
+    for (let i = 0; i < qty; i++) {
+        // Crea una nuova pagina ogni 4 cartelle
+        if (i % 4 === 0) {
+            currentPage = document.createElement('div');
+            currentPage.className = 'page';
+            container.appendChild(currentPage);
+        }
+
+        const matrix = createTombolaMatrix();
+        const wrapper = document.createElement('div');
+        wrapper.className = 'cartella-wrapper';
+
+        let html = `
+            <div class="header-row">
+                <div class="cartella-id">Cartella #${i + 1}</div>
+                <div class="titolo-personalizzato">${titolo}</div>
+                <div style="width:100px"></div> </div>
+            <div class="cartella">
+                <table>`;
+        
+        matrix.forEach(row => {
+            html += '<tr>';
+            row.forEach(cell => {
+                html += cell ? `<td>${cell}</td>` : '<td class="empty"></td>';
+            });
+            html += '</tr>';
         });
-        tableHtml += '</tr>';
-    });
-    
-    tableHtml += '</table>';
-    cardDiv.innerHTML = tableHtml;
-    target.appendChild(cardDiv);
+
+        html += `</table></div>`;
+        wrapper.innerHTML = html;
+        currentPage.appendChild(wrapper);
+    }
 }
 
-// Genera all'avvio
+// Inizializza
 generate();
 </script>
 
