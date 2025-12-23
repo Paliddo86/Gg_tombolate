@@ -2,44 +2,62 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Generatore Cartelle Tombola Professionale</title>
+    <title>Generatore Cartelle Professionale</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        @page { size: A4; margin: 5mm; }
-        body { font-family: 'Helvetica', 'Arial', sans-serif; margin: 0; background-color: #f0f0f0; }
+        /* Setup Margini Zero per la Stampa */
+        @page { 
+            size: A4; 
+            margin: 0 !important; 
+        }
+        
+        body { 
+            font-family: 'Helvetica', 'Arial', sans-serif; 
+            margin: 0; 
+            padding: 0;
+            background-color: #f0f0f0; 
+        }
 
-        /* UI di controllo */
+        /* Controlli UI */
         .no-print { 
             background: #fff; padding: 20px; text-align: center;
             border-bottom: 2px solid #333; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky; top: 0; z-index: 1000;
         }
-        .controls-group { margin: 10px; display: inline-block; text-align: left; vertical-align: top; }
-        input[type="text"] { width: 350px; padding: 10px; border: 1px solid #ccc; font-size: 14px; }
-        input[type="number"] { width: 70px; padding: 10px; border: 1px solid #ccc; font-size: 14px; }
-        button { padding: 11px 25px; cursor: pointer; background: #c0392b; color: white; border: none; font-weight: bold; text-transform: uppercase; border-radius: 4px; }
-        button:hover { background: #a93226; }
+        .controls-group { margin: 10px; display: inline-block; text-align: left; }
+        input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { 
+            padding: 11px 20px; cursor: pointer; border: none; 
+            font-weight: bold; text-transform: uppercase; border-radius: 4px; margin: 5px;
+        }
+        .btn-gen { background: #c0392b; color: white; }
+        .btn-print { background: #2c3e50; color: white; }
+        .btn-pdf { background: #27ae60; color: white; }
 
         /* Layout Pagina A4 */
+        #print-area { width: 210mm; margin: 0 auto; }
+
         .page {
             width: 210mm;
             height: 297mm;
-            margin: 10mm auto;
             background: white;
-            padding: 8mm 12mm;
+            padding: 10mm 12mm; /* Margine interno per non tagliare i bordi della tabella */
             box-sizing: border-box;
             page-break-after: always;
             display: flex;
             flex-direction: column;
+            justify-content: flex-start;
         }
 
-        /* Cartella Dimensioni PDF */
+        /* Cartella Dimensioni PDF Originale */
         .cartella-container {
             width: 186mm; 
-            height: 70mm;  /* Altezza perfetta per 4 cartelle su A4 */
+            height: 69mm; 
             margin: 0 auto;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            border-bottom: 1.5px dashed #666; /* Linea di taglio */
+            border-bottom: 1px dashed #999; 
             box-sizing: border-box;
         }
         .cartella-container:last-child { border-bottom: none; }
@@ -48,7 +66,7 @@
             display: flex;
             width: 100%;
             margin-bottom: 4px;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: bold;
         }
         .id-label { width: 30%; text-align: left; }
@@ -64,20 +82,18 @@
             border: 2px solid #000;
             height: 18mm; 
             text-align: center;
-            vertical-align: middle;
-            /* Numeri più grandi e in grassetto estremo */
-            font-size: 42px; 
+            font-size: 44px; /* Numeri Grandi */
             font-weight: 900; 
             color: #000;
-            padding: 0;
             line-height: 1;
         }
         .empty { background-color: #fff; }
 
         @media print {
-            body { background: none; margin: 0; }
+            body { background: none; }
             .no-print { display: none; }
-            .page { margin: 0; box-shadow: none; }
+            #print-area { width: 210mm; margin: 0; }
+            .page { margin: 0; border: none; box-shadow: none; }
         }
     </style>
 </head>
@@ -85,21 +101,21 @@
 
 <div class="no-print">
     <div class="controls-group">
-        <label>Titolo Personalizzabile:</label><br>
+        <label>Titolo:</label><br>
         <input type="text" id="titoloInput" value="Tombola Gruppo Giovani V. Nigro Seconda mano">
     </div>
     <div class="controls-group">
-        <label>Totale Cartelle:</label><br>
-        <input type="number" id="qty" value="12" min="1">
+        <label>N° Cartelle:</label><br>
+        <input type="number" id="qty" value="4" min="1">
     </div>
-    <button onclick="generate()">Aggiorna e Genera</button>
-    <button onclick="window.print()" style="background:#2c3e50">Stampa / Salva PDF</button>
+    <button class="btn-gen" onclick="generate()">Genera</button>
+    <button class="btn-print" onclick="window.print()">Stampa</button>
+    <button class="btn-pdf" onclick="downloadPDF()">Scarica PDF</button>
 </div>
 
-<div id="content"></div>
+<div id="print-area"></div>
 
 <script>
-// Algoritmo di generazione nel rispetto delle regole della tombola
 function createTombolaMatrix() {
     let grid = Array.from({ length: 3 }, () => Array(9).fill(null));
     let columns = Array.from({ length: 9 }, (_, i) => {
@@ -110,7 +126,6 @@ function createTombolaMatrix() {
         return nums.sort(() => Math.random() - 0.5);
     });
 
-    // Piazza i numeri assicurando 5 per riga e almeno uno per colonna
     for (let r = 0; r < 3; r++) {
         let selectedCols = [];
         while(selectedCols.length < 5) {
@@ -122,7 +137,6 @@ function createTombolaMatrix() {
         });
     }
 
-    // Ordina i numeri verticalmente per colonna
     for (let c = 0; c < 9; c++) {
         let colValues = [];
         for (let r = 0; r < 3; r++) if (grid[r][c] !== null) colValues.push(grid[r][c]);
@@ -134,7 +148,7 @@ function createTombolaMatrix() {
 }
 
 function generate() {
-    const content = document.getElementById('content');
+    const content = document.getElementById('print-area');
     const qty = parseInt(document.getElementById('qty').value);
     const titolo = document.getElementById('titoloInput').value;
     content.innerHTML = '';
@@ -170,6 +184,18 @@ function generate() {
         container.innerHTML = html;
         currentPage.appendChild(container);
     }
+}
+
+function downloadPDF() {
+    const element = document.getElementById('print-area');
+    const opt = {
+        margin:       0,
+        filename:     'cartelle_tombola.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, logging: false, dpi: 192, letterRendering: true },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(element).save();
 }
 
 generate();
