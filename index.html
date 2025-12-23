@@ -2,87 +2,73 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Generatore Cartelle Professionale</title>
+    <title>Tombola v7 - Gruppo Giovani V. Nigro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        /* Setup Margini Zero per la Stampa */
-        @page { 
-            size: A4; 
-            margin: 0 !important; 
-        }
-        
-        body { 
-            font-family: 'Helvetica', 'Arial', sans-serif; 
-            margin: 0; 
-            padding: 0;
-            background-color: #f0f0f0; 
-        }
+        /* Reset Margini per eliminare fogli bianchi */
+        @page { size: A4; margin: 0; }
+        html, body { margin: 0; padding: 0; width: 100%; }
 
-        /* Controlli UI */
+        body { font-family: 'Helvetica', Arial, sans-serif; background-color: #f0f0f0; }
+
         .no-print { 
             background: #fff; padding: 20px; text-align: center;
-            border-bottom: 2px solid #333; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            position: sticky; top: 0; z-index: 1000;
+            border-bottom: 2px solid #333; position: sticky; top: 0; z-index: 1000;
         }
-        .controls-group { margin: 10px; display: inline-block; text-align: left; }
-        input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
-        button { 
-            padding: 11px 20px; cursor: pointer; border: none; 
-            font-weight: bold; text-transform: uppercase; border-radius: 4px; margin: 5px;
-        }
+        input { padding: 8px; margin: 5px; border: 1px solid #ccc; }
+        button { padding: 10px 20px; cursor: pointer; border: none; font-weight: bold; border-radius: 4px; margin: 5px; }
         .btn-gen { background: #c0392b; color: white; }
-        .btn-print { background: #2c3e50; color: white; }
         .btn-pdf { background: #27ae60; color: white; }
 
-        /* Layout Pagina A4 */
-        #print-area { width: 210mm; margin: 0 auto; }
+        /* Layout Area di Stampa */
+        #print-area { width: 210mm; margin: 0 auto; background: #fff; }
 
         .page {
             width: 210mm;
             height: 297mm;
-            background: white;
-            padding: 10mm 12mm; /* Margine interno per non tagliare i bordi della tabella */
+            padding: 8mm 10mm; /* Margini interni minimi */
             box-sizing: border-box;
-            page-break-after: always;
             display: flex;
             flex-direction: column;
-            justify-content: flex-start;
+            justify-content: space-between; /* Distribuisce le 4 cartelle su tutta l'altezza */
+            position: relative;
+            overflow: hidden;
+            page-break-after: always;
         }
 
-        /* Cartella Dimensioni PDF Originale */
-        .cartella-container {
-            width: 186mm; 
-            height: 69mm; 
-            margin: 0 auto;
+        /* Rimuove l'interruzione di pagina sull'ultima pagina per evitare il foglio bianco */
+        .page:last-child { page-break-after: avoid; }
+
+        .cartella-wrapper {
+            width: 100%; /* Prende tutta la larghezza */
+            height: 68mm;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            border-bottom: 1px dashed #999; 
-            box-sizing: border-box;
+            border-bottom: 1px dashed #ccc;
         }
-        .cartella-container:last-child { border-bottom: none; }
+        .cartella-wrapper:last-child { border-bottom: none; }
 
         .header-row {
             display: flex;
+            justify-content: space-between;
             width: 100%;
-            margin-bottom: 4px;
+            margin-bottom: 5px;
             font-size: 13px;
             font-weight: bold;
         }
-        .id-label { width: 30%; text-align: left; }
-        .titolo-label { width: 70%; text-align: right; text-transform: uppercase; }
 
         table { 
-            width: 186mm; 
+            width: 100%; /* Occupa tutto lo spazio del wrapper */
             border-collapse: collapse; 
             table-layout: fixed; 
-            border: 2.5px solid #000;
+            border: 3px solid #000;
         }
         td {
             border: 2px solid #000;
             height: 18mm; 
             text-align: center;
-            font-size: 44px; /* Numeri Grandi */
+            font-size: 44px; 
             font-weight: 900; 
             color: #000;
             line-height: 1;
@@ -92,25 +78,18 @@
         @media print {
             body { background: none; }
             .no-print { display: none; }
-            #print-area { width: 210mm; margin: 0; }
-            .page { margin: 0; border: none; box-shadow: none; }
+            #print-area { margin: 0; width: 210mm; }
         }
     </style>
 </head>
 <body>
 
 <div class="no-print">
-    <div class="controls-group">
-        <label>Titolo:</label><br>
-        <input type="text" id="titoloInput" value="Tombola Gruppo Giovani V. Nigro Seconda mano">
-    </div>
-    <div class="controls-group">
-        <label>N° Cartelle:</label><br>
-        <input type="number" id="qty" value="4" min="1">
-    </div>
-    <button class="btn-gen" onclick="generate()">Genera</button>
-    <button class="btn-print" onclick="window.print()">Stampa</button>
+    <input type="text" id="titoloInput" value="Tombola Gruppo Giovani V. Nigro Seconda mano">
+    <input type="number" id="qty" value="4" min="1">
+    <button class="btn-gen" onclick="generate()">Genera Cartelle</button>
     <button class="btn-pdf" onclick="downloadPDF()">Scarica PDF</button>
+    <p style="font-size: 12px; color: #666;">Consiglio: In fase di stampa seleziona "Margini: Nessuno" e "Scala: 100%"</p>
 </div>
 
 <div id="print-area"></div>
@@ -132,9 +111,7 @@ function createTombolaMatrix() {
             let c = Math.floor(Math.random() * 9);
             if (!selectedCols.includes(c)) selectedCols.push(c);
         }
-        selectedCols.forEach(c => {
-            grid[r][c] = columns[c].pop();
-        });
+        selectedCols.forEach(c => { grid[r][c] = columns[c].pop(); });
     }
 
     for (let c = 0; c < 9; c++) {
@@ -162,13 +139,13 @@ function generate() {
         }
 
         const matrix = createTombolaMatrix();
-        const container = document.createElement('div');
-        container.className = 'cartella-container';
+        const wrapper = document.createElement('div');
+        wrapper.className = 'cartella-wrapper';
 
         let html = `
             <div class="header-row">
-                <div class="id-label">N. ${i + 1}</div>
-                <div class="titolo-label">${titolo}</div>
+                <span>N. ${i + 1}</span>
+                <span style="text-transform: uppercase;">${titolo}</span>
             </div>
             <table>`;
         
@@ -181,25 +158,24 @@ function generate() {
         });
 
         html += `</table>`;
-        container.innerHTML = html;
-        currentPage.appendChild(container);
+        wrapper.innerHTML = html;
+        currentPage.appendChild(wrapper);
     }
 }
 
 function downloadPDF() {
     const element = document.getElementById('print-area');
     const opt = {
-        margin:       0,
-        filename:     'cartelle_tombola.pdf',
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, logging: false, dpi: 192, letterRendering: true },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        margin: 0,
+        filename: 'cartelle_tombola.pdf',
+        image: { type: 'jpeg', quality: 1 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     html2pdf().set(opt).from(element).save();
 }
 
 generate();
 </script>
-
 </body>
 </html>
