@@ -112,7 +112,7 @@ function renderPreview() {
         wrapper.innerHTML = `
             <div class="preview-header">
                 <span>${titolo}</span>
-                <span style="color: #333;">Cartella n. ${i+1}</span>
+                <span style="color: #333;">${i+1}</span>
             </div>
             <table class="preview-table">
                 ${matrix.map(row => `<tr>${row.map(c => `<td class="${c?'':'empty'}">${c||''}</td>`).join('')}</tr>`).join('')}
@@ -148,7 +148,7 @@ function generatePDF() {
         doc.setFontSize(11);
         doc.text(titolo, marginX + 3, startY - 2.5);
         doc.setFont("helvetica", "normal");
-        doc.text(`Cartella n. ${i + 1}`, marginX + cardWidth - 3, startY - 2.5, { align: "right" });
+        doc.text(`${i + 1}`, marginX + cardWidth - 3, startY - 2.5, { align: "right" });
 
         // Griglia
         doc.setLineWidth(0.5);
