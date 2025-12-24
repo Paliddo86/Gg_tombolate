@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Generatore cartelle GG</title>
+    <title>Generatore cartelle GG - Serie Professionale</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
@@ -47,7 +47,7 @@
         </div>
         <div style="text-align:left">
             <label style="font-size:11px; font-weight:bold">Q.TÀ</label><br>
-            <input type="number" id="qty" value="4" min="1" style="width: 60px;">
+            <input type="number" id="qty" value="6" min="1" style="width: 60px;">
         </div>
         <button class="btn-gen" onclick="renderPreview()">GENERA ANTEPRIMA</button>
         <button class="btn-pdf" onclick="generatePDF()">SCARICA PDF</button>
@@ -60,7 +60,7 @@
 const { jsPDF } = window.jspdf;
 let currentCartelle = [];
 
-// Funzione di supporto per mescolare gli array (Fisher-Yates)
+// Fisher-Yates shuffle
 function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -69,82 +69,95 @@ function shuffle(array) {
     return array;
 }
 
-function createMatrix() {
-    let grid; 
-    let valid = false;
-    
-    // 1. Generazione schema dei vuoti (5 numeri per riga, ogni colonna almeno 1)
-    while (!valid) {
-        grid = Array.from({ length: 3 }, () => Array(9).fill(null));
-        let rowCounts = [0, 0, 0], colCounts = Array(9).fill(0);
+/**
+ * Genera una serie di 6 cartelle (sestina) contenente tutti i 90 numeri una sola volta.
+ */
+function generateSestina() {
+    let sestina = [];
+    let numbersByCol = Array.from({ length: 9 }, (_, i) => {
+        let min = (i === 0) ? 1 : i * 10;
+        let max = (i === 8) ? 90 : i * 10 + 9;
+        let list = [];
+        for (let n = min; n <= max; n++) list.push(n);
+        return shuffle(list);
+    });
+
+    // Inizializza 6 matrici vuote
+    for (let i = 0; i < 6; i++) {
+        sestina.push(Array.from({ length: 3 }, () => Array(9).fill(null)));
+    }
+
+    // Distribuzione obbligatoria: ogni numero deve finire in una cartella
+    for (let c = 0; c < 9; c++) {
+        let colNums = numbersByCol[c];
+        let cardIndices = shuffle([0, 1, 2, 3, 4, 5]);
         
-        // Prima assicuriamo un numero per colonna in ordine casuale
-        let colOrder = shuffle([0,1,2,3,4,5,6,7,8]);
-        for (let c of colOrder) {
-            let r = Math.floor(Math.random() * 3);
-            grid[r][c] = true; rowCounts[r]++; colCounts[c]++;
+        // Ogni cartella deve avere almeno un numero per colonna
+        for (let i = 0; i < 6; i++) {
+            let cardIdx = cardIndices[i];
+            let rowIdx = Math.floor(Math.random() * 3);
+            sestina[cardIdx][rowIdx][c] = colNums.pop();
         }
-        
-        // Riempiamo le righe fino a 5 numeri ciascuna
-        for (let r = 0; r < 3; r++) {
-            while (rowCounts[r] < 5) {
-                let c = Math.floor(Math.random() * 9);
-                if (grid[r][c] === null) {
-                    grid[r][c] = true;
-                    rowCounts[r]++; colCounts[c]++;
+
+        // Distribuisci i numeri rimanenti della colonna nelle cartelle
+        while (colNums.length > 0) {
+            let n = colNums.pop();
+            let placed = false;
+            let safety = 0;
+            while (!placed && safety < 100) {
+                let cardIdx = Math.floor(Math.random() * 6);
+                let rowIdx = Math.floor(Math.random() * 3);
+                // Vincolo: max 3 numeri per colonna in una cartella (già implicito in 3 righe), 
+                // e max 5 numeri per riga
+                let rowCount = sestina[cardIdx][rowIdx].filter(x => x !== null).length;
+                if (sestina[cardIdx][rowIdx][c] === null && rowCount < 5) {
+                    sestina[cardIdx][rowIdx][c] = n;
+                    placed = true;
                 }
+                safety++;
             }
         }
-        
-        // Validazione: Ogni riga deve avere ESATTAMENTE 5 numeri e ogni colonna almeno 1
-        if (rowCounts.every(count => count === 5) && colCounts.every(count => count > 0)) {
-            valid = true;
-        }
     }
 
-    // 2. Popolamento con numeri reali mescolati seriamente
-    for (let c = 0; c < 9; c++) {
-        let min = (c === 0) ? 1 : c * 10;
-        let max = (c === 8) ? 90 : c * 10 + 9;
-        
-        // Creazione pool di numeri per la colonna specifica
-        let pool = [];
-        for (let n = min; n <= max; n++) pool.push(n);
-        
-        // Mescolamento del pool prima della pesca
-        shuffle(pool);
+    // Pulizia e Sort: ordina i numeri nelle colonne delle singole cartelle
+    sestina.forEach(matrix => {
+        for (let c = 0; c < 9; c++) {
+            let vals = [];
+            for (let r = 0; r < 3; r++) if (matrix[r][c] !== null) vals.push(matrix[r][c]);
+            vals.sort((a, b) => a - b);
+            let idx = 0;
+            for (let r = 0; r < 3; r++) if (matrix[r][c] !== null) matrix[r][c] = vals[idx++];
+        }
+    });
 
-        let vals = [];
-        for (let r = 0; r < 3; r++) {
-            if (grid[r][c] === true) vals.push(pool.pop());
-        }
-        
-        // I numeri estratti per la colonna vanno ordinati verticalmente (regola tombola)
-        vals.sort((a, b) => a - b);
-        
-        let idx = 0;
-        for (let r = 0; r < 3; r++) {
-            if (grid[r][c] === true) grid[r][c] = vals[idx++];
-        }
-    }
-    return grid;
+    return sestina;
 }
 
 function renderPreview() {
     const area = document.getElementById('preview-area');
     const qty = parseInt(document.getElementById('qty').value);
     const titolo = document.getElementById('titoloInput').value;
-    area.innerHTML = ''; currentCartelle = [];
+    area.innerHTML = ''; 
+    currentCartelle = [];
+
+    // Genera cartelle a blocchi di 6 per garantire la varietà totale
+    let generated = 0;
+    while (generated < qty) {
+        let sestina = generateSestina();
+        for (let j = 0; j < 6 && generated < qty; j++) {
+            currentCartelle.push(sestina[j]);
+            generated++;
+        }
+    }
 
     let currentPageDiv;
-    for (let i = 0; i < qty; i++) {
+    for (let i = 0; i < currentCartelle.length; i++) {
         if (i % 4 === 0) {
             currentPageDiv = document.createElement('div');
             currentPageDiv.className = 'preview-page';
             area.appendChild(currentPageDiv);
         }
-        const matrix = createMatrix();
-        currentCartelle.push(matrix);
+        const matrix = currentCartelle[i];
 
         const wrapper = document.createElement('div');
         wrapper.className = 'preview-cartella';
@@ -166,18 +179,12 @@ function generatePDF() {
     if (currentCartelle.length === 0) return;
     const doc = new jsPDF('p', 'mm', 'a4');
     const titolo = document.getElementById('titoloInput').value;
-    
-    const cellW = 21;   
-    const cellH = 18;   
-    const cardWidth = cellW * 9; 
-    const marginX = (210 - cardWidth) / 2; 
-    const headerH = 7;
-    const stepY = 70; 
+    const cellW = 21, cellH = 18, cardWidth = 189, marginX = (210 - cardWidth) / 2;
+    const headerH = 7, stepY = 70; 
 
     currentCartelle.forEach((matrix, i) => {
         const pageIdx = i % 4;
         if (i > 0 && pageIdx === 0) doc.addPage();
-
         const startY = 15 + (pageIdx * stepY);
 
         doc.setLineWidth(0.5);
