@@ -2,72 +2,62 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Tombola Pro - Anteprima e PDF Vettoriale</title>
+    <title>Tombola Pro - Layout A4 Ottimizzato</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #e0e0e0; margin: 0; padding: 0; }
-        
-        /* Controlli UI */
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
         .no-print { 
             background: #fff; padding: 20px; text-align: center;
-            border-bottom: 3px solid #333; position: sticky; top: 0; z-index: 1000;
+            border-bottom: 2px solid #333; position: sticky; top: 0; z-index: 1000;
         }
-        .controls { display: flex; justify-content: center; gap: 20px; align-items: flex-end; flex-wrap: wrap; }
-        .group { text-align: left; }
-        label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #444; }
+        .controls { display: flex; justify-content: center; gap: 15px; align-items: flex-end; }
         input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
-        button { padding: 10px 25px; cursor: pointer; border: none; font-weight: bold; border-radius: 4px; color: white; transition: 0.3s; }
-        .btn-gen { background: #2980b9; }
+        button { padding: 10px 20px; cursor: pointer; border: none; font-weight: bold; border-radius: 4px; color: white; }
+        .btn-gen { background: #3498db; }
         .btn-pdf { background: #27ae60; }
-        button:hover { opacity: 0.8; }
-
-        /* Anteprima a schermo */
+        
         #preview-area { display: flex; flex-direction: column; align-items: center; padding: 20px; }
         .preview-page { 
-            background: white; width: 210mm; min-height: 297mm; 
-            margin-bottom: 30px; box-shadow: 0 0 15px rgba(0,0,0,0.3);
-            padding: 10mm 15mm; box-sizing: border-box;
+            background: white; width: 210mm; height: 297mm; 
+            margin-bottom: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            padding: 10mm 20mm; box-sizing: border-box; overflow: hidden;
         }
-        .preview-cartella { 
-            width: 100%; border-bottom: 1px dashed #ccc; padding: 10px 0;
-            margin-bottom: 5px;
-        }
-        .preview-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-bottom: 2px; }
-        .preview-table { width: 100%; border-collapse: collapse; border: 2px solid #000; table-layout: fixed; }
+        .preview-cartella { margin-bottom: 8mm; width: 100%; }
+        .preview-header { display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; margin-bottom: 2px; }
+        .preview-table { width: 162mm; border-collapse: collapse; border: 2px solid #000; table-layout: fixed; margin: 0 auto; }
         .preview-table td { 
-            border: 1.5px solid #000; height: 21mm; text-align: center; 
-            font-size: 35px; font-weight: 900; font-family: 'Arial Black', sans-serif;
+            border: 1.5px solid #000; height: 18mm; text-align: center; 
+            font-size: 32px; font-weight: 900; font-family: sans-serif;
         }
         .empty { background: #fff; }
+        .cut-line { border-bottom: 1px dashed #aaa; margin-top: 5mm; width: 110%; margin-left: -5%; }
     </style>
 </head>
 <body>
 
 <div class="no-print">
     <div class="controls">
-        <div class="group">
-            <label>TITOLO CARTELLE</label>
-            <input type="text" id="titoloInput" value="Tombola Gruppo Giovani V. Nigro Seconda mano" style="width: 350px;">
+        <div style="text-align:left">
+            <label style="font-size:11px; font-weight:bold">TITOLO</label><br>
+            <input type="text" id="titoloInput" value="Tombola Gruppo Giovani V. Nigro Seconda mano" style="width: 300px;">
         </div>
-        <div class="group">
-            <label>QUANTITÀ</label>
-            <input type="number" id="qty" value="4" min="1" style="width: 70px;">
+        <div style="text-align:left">
+            <label style="font-size:11px; font-weight:bold">Q.TÀ</label><br>
+            <input type="number" id="qty" value="4" min="1" style="width: 60px;">
         </div>
         <button class="btn-gen" onclick="renderPreview()">GENERA ANTEPRIMA</button>
         <button class="btn-pdf" onclick="generatePDF()">SCARICA PDF</button>
     </div>
 </div>
 
-<div id="preview-area">
-    </div>
+<div id="preview-area"></div>
 
 <script>
 const { jsPDF } = window.jspdf;
-let currentCartelle = []; // Salva i dati per coerenza tra anteprima e PDF
+let currentCartelle = [];
 
 function createMatrix() {
-    let grid;
-    let valid = false;
+    let grid; let valid = false;
     while (!valid) {
         grid = Array.from({ length: 3 }, () => Array(9).fill(null));
         let rowCounts = [0, 0, 0], colCounts = Array(9).fill(0);
@@ -85,9 +75,8 @@ function createMatrix() {
     let columnsPool = Array.from({ length: 9 }, (_, i) => {
         let min = i === 0 ? 1 : i * 10;
         let max = i === 8 ? 90 : i * 10 + 9;
-        let nums = [];
-        for (let n = min; n <= max; n++) nums.push(n);
-        return nums.sort(() => Math.random() - 0.5);
+        let nums = Array.from({length: max - min + 1}, (_, k) => k + min).sort(() => Math.random() - 0.5);
+        return nums;
     });
     for (let c = 0; c < 9; c++) {
         let vals = [];
@@ -103,8 +92,7 @@ function renderPreview() {
     const area = document.getElementById('preview-area');
     const qty = parseInt(document.getElementById('qty').value);
     const titolo = document.getElementById('titoloInput').value.toUpperCase();
-    area.innerHTML = '';
-    currentCartelle = [];
+    area.innerHTML = ''; currentCartelle = [];
 
     let currentPageDiv;
     for (let i = 0; i < qty; i++) {
@@ -119,73 +107,66 @@ function renderPreview() {
         const wrapper = document.createElement('div');
         wrapper.className = 'preview-cartella';
         wrapper.innerHTML = `
-            <div class="preview-header"><span>N. ${i+1}</span><span>${titolo}</span></div>
+            <div class="preview-header" style="width:162mm; margin: 0 auto;"><span>N. ${i+1}</span><span>${titolo}</span></div>
             <table class="preview-table">
                 ${matrix.map(row => `<tr>${row.map(c => `<td class="${c?'':'empty'}">${c||''}</td>`).join('')}</tr>`).join('')}
             </table>
+            ${(i + 1) % 4 !== 0 ? '<div class="cut-line"></div>' : ''}
         `;
         currentPageDiv.appendChild(wrapper);
     }
 }
 
 function generatePDF() {
-    if (currentCartelle.length === 0) { alert("Genera prima l'anteprima!"); return; }
-    
+    if (currentCartelle.length === 0) return;
     const doc = new jsPDF('p', 'mm', 'a4');
     const titolo = document.getElementById('titoloInput').value.toUpperCase();
     
-    const marginX = 15;
-    const cardWidth = 180; // (20mm x 9 col = 180mm) per avere quasi quadrati
-    const cellSide = 20;   // Dimensione cella (quadrata)
-    const headerHeight = 6;
-    const footerSpace = 8; // Spazio aumentato sotto la cartella
+    const cellSide = 18;   // Cella quadrata ridotta a 18mm
+    const cardWidth = cellSide * 9; // 162mm
+    const marginX = (210 - cardWidth) / 2; // Centratura automatica
+    const stepY = 70; // Spazio verticale totale assegnato a ogni cartella
 
     currentCartelle.forEach((matrix, i) => {
         const pageIdx = i % 4;
         if (i > 0 && pageIdx === 0) doc.addPage();
 
-        // Calcolo posizione Y
-        const startY = 15 + (pageIdx * (headerHeight + (cellSide * 3) + footerSpace));
+        const startY = 15 + (pageIdx * stepY);
 
-        // Intestazione (ridotta)
+        // Intestazione
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(10);
+        doc.setFontSize(9);
         doc.text(`N. ${i + 1}`, marginX, startY - 2);
         doc.text(titolo, marginX + cardWidth, startY - 2, { align: "right" });
 
-        // Tabella
-        doc.setLineWidth(0.6);
-        doc.setDrawColor(0);
+        // Griglia
+        doc.setLineWidth(0.5);
         for (let r = 0; r <= 3; r++) doc.line(marginX, startY + (r * cellSide), marginX + cardWidth, startY + (r * cellSide));
         for (let c = 0; c <= 9; c++) doc.line(marginX + (c * cellSide), startY, marginX + (c * cellSide), startY + (3 * cellSide));
 
-        // Numeri (Grandi e centrati)
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(38);
+        // Numeri
+        doc.setFontSize(32);
         matrix.forEach((row, rIdx) => {
             row.forEach((num, cIdx) => {
                 if (num) {
                     const x = marginX + (cIdx * cellSide) + (cellSide / 2);
-                    const y = startY + (rIdx * cellSide) + (cellSide / 2) + 6;
+                    const y = startY + (rIdx * cellSide) + (cellSide / 2) + 5;
                     doc.text(num.toString(), x, y, { align: "center" });
                 }
             });
         });
 
-        // Linea di taglio (footer aumentato)
+        // Linea di taglio
         if (pageIdx < 3) {
-            doc.setLineWidth(0.2);
+            doc.setLineWidth(0.1);
             doc.setLineDashPattern([2, 2], 0);
-            const lineY = startY + (cellSide * 3) + (footerSpace / 2);
-            doc.line(5, lineY, 205, lineY);
+            doc.line(10, startY + (cellSide * 3) + 5, 200, startY + (cellSide * 3) + 5);
             doc.setLineDashPattern([], 0);
         }
     });
-
-    doc.save("Cartelle_Tombola_Professionali.pdf");
+    doc.save("Cartelle_Tombola_Ottimizzate.pdf");
 }
 
-// Genera una preview al caricamento
 renderPreview();
 </script>
 </body>
