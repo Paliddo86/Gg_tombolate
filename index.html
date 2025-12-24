@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Tombola Pro - Algoritmo Random Avanzato</title>
+    <title>Generatore cartelle GG</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
@@ -10,45 +10,44 @@
             background: #fff; padding: 20px; text-align: center;
             border-bottom: 2px solid #333; position: sticky; top: 0; z-index: 1000;
         }
-        .controls { display: flex; justify-content: center; gap: 20px; align-items: flex-end; }
-        .group { text-align: left; }
-        label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 5px; color: #555; }
-        input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
-        button { padding: 10px 20px; cursor: pointer; border: none; font-weight: bold; border-radius: 4px; color: white; transition: 0.3s; }
+        .controls { display: flex; justify-content: center; gap: 15px; align-items: flex-end; }
+        input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 20px; cursor: pointer; border: none; font-weight: bold; border-radius: 4px; color: white; }
         .btn-gen { background: #3498db; }
         .btn-pdf { background: #27ae60; }
+        
         #preview-area { display: flex; flex-direction: column; align-items: center; padding: 20px; }
         .preview-page { 
             background: white; width: 210mm; height: 297mm; 
-            margin-bottom: 30px; box-shadow: 0 0 15px rgba(0,0,0,0.2);
-            padding: 10mm 10.5mm; box-sizing: border-box; overflow: hidden; position: relative;
+            margin-bottom: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            padding: 10mm 10.5mm; box-sizing: border-box; overflow: hidden;
         }
-        .preview-cartella { width: 189mm; margin: 0 auto 12mm auto; }
+        .preview-cartella { margin-bottom: 12mm; width: 189mm; margin-left: auto; margin-right: auto; }
         .preview-header { 
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 6px 10px; border: 2px solid #000; border-bottom: none;
-            background: #fdfdfd; font-size: 14px; font-weight: 500;
+            display: flex; justify-content: space-between; font-size: 13px; 
+            padding: 4px 8px; border: 2px solid #000; border-bottom: none;
+            background: #f9f9f9;
         }
         .preview-table { width: 189mm; border-collapse: collapse; border: 2px solid #000; table-layout: fixed; }
         .preview-table td { 
             border: 1.5px solid #000; height: 18mm; text-align: center; 
-            font-size: 34px; font-weight: 900; font-family: 'Arial Black', sans-serif;
+            font-size: 34px; font-weight: 900; font-family: sans-serif;
         }
         .empty { background: #fff; }
-        .cut-line { position: absolute; left: 0; width: 100%; border-bottom: 1px dashed #bbb; height: 1px; }
+        .cut-line { border-bottom: 1px dashed #aaa; margin-top: 8mm; width: 100%; }
     </style>
 </head>
 <body>
 
 <div class="no-print">
     <div class="controls">
-        <div class="group">
-            <label>TITOLO</label>
-            <input type="text" id="titoloInput" value="Tombola Gruppo Giovani V. Nigro Seconda mano" style="width: 400px;">
+        <div style="text-align:left">
+            <label style="font-size:12px; font-weight:bold">TITOLO (Maiuscole/Minuscole come scritte)</label><br>
+            <input type="text" id="titoloInput" value="Tombola Gruppo Giovani V. Nigro - Prima mano" style="width: 350px;">
         </div>
-        <div class="group">
-            <label>N. CARTELLE</label>
-            <input type="number" id="qty" value="4" min="1" style="width: 80px;">
+        <div style="text-align:left">
+            <label style="font-size:11px; font-weight:bold">Q.TÀ</label><br>
+            <input type="number" id="qty" value="4" min="1" style="width: 60px;">
         </div>
         <button class="btn-gen" onclick="renderPreview()">GENERA ANTEPRIMA</button>
         <button class="btn-pdf" onclick="generatePDF()">SCARICA PDF</button>
@@ -61,7 +60,7 @@
 const { jsPDF } = window.jspdf;
 let currentCartelle = [];
 
-// Funzione di mescolamento professionale Fisher-Yates
+// Funzione di supporto per mescolare gli array (Fisher-Yates)
 function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -71,49 +70,58 @@ function shuffle(array) {
 }
 
 function createMatrix() {
-    let grid;
+    let grid; 
     let valid = false;
     
+    // 1. Generazione schema dei vuoti (5 numeri per riga, ogni colonna almeno 1)
     while (!valid) {
         grid = Array.from({ length: 3 }, () => Array(9).fill(null));
         let rowCounts = [0, 0, 0], colCounts = Array(9).fill(0);
         
-        // Fase 1: Garantiamo almeno un numero per ogni colonna
-        let cols = shuffle([0,1,2,3,4,5,6,7,8]);
-        for (let c of cols) {
+        // Prima assicuriamo un numero per colonna in ordine casuale
+        let colOrder = shuffle([0,1,2,3,4,5,6,7,8]);
+        for (let c of colOrder) {
             let r = Math.floor(Math.random() * 3);
             grid[r][c] = true; rowCounts[r]++; colCounts[c]++;
         }
-
-        // Fase 2: Riempiamo fino a 15 numeri (5 per riga)
-        let attempts = 0;
-        while (rowCounts.some(count => count < 5) && attempts < 1000) {
-            let r = rowCounts.findIndex(count => count < 5);
-            let c = Math.floor(Math.random() * 9);
-            if (grid[r][c] === null) {
-                grid[r][c] = true;
-                rowCounts[r]++; colCounts[c]++;
+        
+        // Riempiamo le righe fino a 5 numeri ciascuna
+        for (let r = 0; r < 3; r++) {
+            while (rowCounts[r] < 5) {
+                let c = Math.floor(Math.random() * 9);
+                if (grid[r][c] === null) {
+                    grid[r][c] = true;
+                    rowCounts[r]++; colCounts[c]++;
+                }
             }
-            attempts++;
         }
-        if (rowCounts.every(count => count === 5) && colCounts.every(count => count > 0)) valid = true;
+        
+        // Validazione: Ogni riga deve avere ESATTAMENTE 5 numeri e ogni colonna almeno 1
+        if (rowCounts.every(count => count === 5) && colCounts.every(count => count > 0)) {
+            valid = true;
+        }
     }
 
-    // Fase 3: Riempimento con numeri casuali rimescolati seriamente
+    // 2. Popolamento con numeri reali mescolati seriamente
     for (let c = 0; c < 9; c++) {
         let min = (c === 0) ? 1 : c * 10;
         let max = (c === 8) ? 90 : c * 10 + 9;
         
-        // Genera pool di numeri per la colonna e rimescola con Fisher-Yates
+        // Creazione pool di numeri per la colonna specifica
         let pool = [];
         for (let n = min; n <= max; n++) pool.push(n);
+        
+        // Mescolamento del pool prima della pesca
         shuffle(pool);
 
         let vals = [];
         for (let r = 0; r < 3; r++) {
             if (grid[r][c] === true) vals.push(pool.pop());
         }
+        
+        // I numeri estratti per la colonna vanno ordinati verticalmente (regola tombola)
         vals.sort((a, b) => a - b);
+        
         let idx = 0;
         for (let r = 0; r < 3; r++) {
             if (grid[r][c] === true) grid[r][c] = vals[idx++];
@@ -143,20 +151,14 @@ function renderPreview() {
         wrapper.innerHTML = `
             <div class="preview-header">
                 <span>${titolo}</span>
-                <span style="font-weight: bold;">Cartella n. ${i+1}</span>
+                <span style="color: #333;">${i+1}</span>
             </div>
             <table class="preview-table">
                 ${matrix.map(row => `<tr>${row.map(c => `<td class="${c?'':'empty'}">${c||''}</td>`).join('')}</tr>`).join('')}
             </table>
+            ${(i + 1) % 4 !== 0 ? '<div class="cut-line"></div>' : ''}
         `;
         currentPageDiv.appendChild(wrapper);
-
-        if ((i + 1) % 4 !== 0) {
-            const line = document.createElement('div');
-            line.className = 'cut-line';
-            line.style.top = (24.5 + ((i % 4) * 68.5)) + "mm";
-            currentPageDiv.appendChild(line);
-        }
     }
 }
 
@@ -164,24 +166,33 @@ function generatePDF() {
     if (currentCartelle.length === 0) return;
     const doc = new jsPDF('p', 'mm', 'a4');
     const titolo = document.getElementById('titoloInput').value;
-    const cellW = 21, cellH = 18, cardWidth = 189, marginX = (210 - cardWidth) / 2;
-    const headerH = 8, stepY = 68.5;
+    
+    const cellW = 21;   
+    const cellH = 18;   
+    const cardWidth = cellW * 9; 
+    const marginX = (210 - cardWidth) / 2; 
+    const headerH = 7;
+    const stepY = 70; 
 
     currentCartelle.forEach((matrix, i) => {
         const pageIdx = i % 4;
         if (i > 0 && pageIdx === 0) doc.addPage();
-        const startY = 18 + (pageIdx * stepY);
 
-        doc.setLineWidth(0.6);
+        const startY = 15 + (pageIdx * stepY);
+
+        doc.setLineWidth(0.5);
         doc.rect(marginX, startY - headerH, cardWidth, headerH);
-        doc.setFontSize(11);
-        doc.text(titolo, marginX + 3, startY - 2.8);
         doc.setFont("helvetica", "bold");
-        doc.text(`Cartella n. ${i + 1}`, marginX + cardWidth - 3, startY - 2.8, { align: "right" });
+        doc.setFontSize(12);
+        doc.text(titolo, marginX + 3, startY - 2.5);
+        doc.setFont("helvetica", "normal");
+        doc.text(`${i + 1}`, marginX + cardWidth - 3, startY - 2.5, { align: "right" });
 
+        doc.setLineWidth(0.5);
         for (let r = 0; r <= 3; r++) doc.line(marginX, startY + (r * cellH), marginX + cardWidth, startY + (r * cellH));
         for (let c = 0; c <= 9; c++) doc.line(marginX + (c * cellW), startY, marginX + (c * cellW), startY + (3 * cellH));
 
+        doc.setFont("helvetica", "bold");
         doc.setFontSize(36);
         matrix.forEach((row, rIdx) => {
             row.forEach((num, cIdx) => {
@@ -196,11 +207,11 @@ function generatePDF() {
         if (pageIdx < 3) {
             doc.setLineWidth(0.1);
             doc.setLineDashPattern([2, 2], 0);
-            doc.line(5, startY + (cellH * 3) + 6.5, 205, startY + (cellH * 3) + 6.5);
+            doc.line(5, startY + (cellH * 3) + 6, 205, startY + (cellH * 3) + 6);
             doc.setLineDashPattern([], 0);
         }
     });
-    doc.save("Cartelle_Tombola_Gg_Random.pdf");
+    doc.save(titolo + "_" + currentCartelle.length + ".pdf");
 }
 
 renderPreview();
