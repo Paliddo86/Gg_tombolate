@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Generatore cartelle GG</title>
+    <title>Generatore cartelle GG - Pro Edition</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
@@ -59,8 +59,8 @@
 <script>
 const { jsPDF } = window.jspdf;
 let currentCartelle = [];
+let usedHashes = new Set();
 
-// Mescolamento Fisher-Yates per una casualità reale
 function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -69,10 +69,11 @@ function shuffle(array) {
     return array;
 }
 
-/**
- * Algoritmo a "Sestina": Genera 6 cartelle usando tutti i 90 numeri.
- * Garantisce 5 numeri per riga e 15 per cartella.
- */
+// Crea un'impronta della cartella per verificarne l'univocità
+function getCardHash(matrix) {
+    return matrix.flat().map(v => v === null ? 0 : 1).join('');
+}
+
 function generateSestina() {
     let success = false;
     let sestina = [];
@@ -93,7 +94,6 @@ function generateSestina() {
         let possible = true;
         for (let c = 0; c < 9; c++) {
             let colNums = numbersByCol[c];
-            // Ogni cartella deve avere almeno un numero in questa colonna
             let cardIndices = shuffle([0, 1, 2, 3, 4, 5]);
             
             for (let cardIdx of cardIndices) {
@@ -112,16 +112,25 @@ function generateSestina() {
             }
             if (!possible) break;
 
-            // Distribuisci i numeri restanti della colonna nelle cartelle
             while (colNums.length > 0) {
                 let n = colNums.pop();
                 let cardIndicesReshuffled = shuffle([0, 1, 2, 3, 4, 5]);
                 let placed = false;
                 for (let cardIdx of cardIndicesReshuffled) {
+                    // Controllo estetico: conta quante colonne hanno già 3 numeri in questa cartella
+                    let colsWith3 = 0;
+                    for(let col = 0; col < 9; col++) {
+                        if(sestina[cardIdx][0][col] && sestina[cardIdx][1][col] && sestina[cardIdx][2][col]) colsWith3++;
+                    }
+
                     let rows = shuffle([0, 1, 2]);
                     for (let r of rows) {
                         let rowCount = sestina[cardIdx][r].filter(x => x !== null).length;
+                        // Evitiamo più di una colonna da 3 numeri se possibile
+                        let colInCardCount = [sestina[cardIdx][0][c], sestina[cardIdx][1][c], sestina[cardIdx][2][c]].filter(x=>x).length;
+                        
                         if (sestina[cardIdx][r][c] === null && rowCount < 5) {
+                            if (colInCardCount === 2 && colsWith3 >= 1) continue; // Salta se renderebbe la seconda colonna da 3
                             sestina[cardIdx][r][c] = n;
                             placed = true;
                             break;
@@ -129,21 +138,39 @@ function generateSestina() {
                     }
                     if (placed) break;
                 }
+                // Se non è stato possibile rispettare il limite estetico, inserisci comunque per non bloccare l'algoritmo
+                if (!placed) {
+                    for (let cardIdx of cardIndicesReshuffled) {
+                        let rows = shuffle([0, 1, 2]);
+                        for (let r of rows) {
+                            if (sestina[cardIdx][r][c] === null && sestina[cardIdx][r].filter(x=>x).length < 5) {
+                                sestina[cardIdx][r][c] = n;
+                                placed = true; break;
+                            }
+                        }
+                        if (placed) break;
+                    }
+                }
                 if (!placed) { possible = false; break; }
             }
             if (!possible) break;
         }
 
         if (possible) {
-            // Verifica finale: ogni riga deve avere ESATTAMENTE 5 numeri
-            let totalValid = sestina.every(matrix => 
-                matrix.every(row => row.filter(x => x !== null).length === 5)
-            );
-            if (totalValid) success = true;
+            let totalValid = sestina.every(matrix => {
+                let hash = getCardHash(matrix);
+                let isUnique = !usedHashes.has(hash);
+                let rowsOk = matrix.every(row => row.filter(x => x !== null).length === 5);
+                return isUnique && rowsOk;
+            });
+            
+            if (totalValid) {
+                sestina.forEach(m => usedHashes.add(getCardHash(m)));
+                success = true;
+            }
         }
     }
 
-    // Ordinamento verticale dei numeri nelle colonne
     sestina.forEach(matrix => {
         for (let c = 0; c < 9; c++) {
             let vals = [];
@@ -161,7 +188,9 @@ function renderPreview() {
     const area = document.getElementById('preview-area');
     const qty = parseInt(document.getElementById('qty').value);
     const titolo = document.getElementById('titoloInput').value;
-    area.innerHTML = ''; currentCartelle = [];
+    area.innerHTML = ''; 
+    currentCartelle = [];
+    usedHashes.clear();
 
     let generated = 0;
     while (generated < qty) {
