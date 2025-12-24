@@ -2,98 +2,93 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Tombola Pro - Gruppo Giovani V. Nigro</title>
+    <title>Generatore Cartelle Professionale - Gruppo Giovani V. Nigro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        /* Reset totale per eliminare pagine bianche */
+        /* Reset per eliminare fogli bianchi e margini indesiderati */
         @page { size: A4; margin: 0; }
         * { box-sizing: border-box; -webkit-print-color-adjust: exact; }
-        html, body { margin: 0; padding: 0; width: 210mm; background-color: #f0f0f0; }
+        html, body { margin: 0; padding: 0; width: 210mm; font-family: Arial, sans-serif; }
 
         .no-print { 
-            width: 100vw; background: #fff; padding: 20px; text-align: center;
-            border-bottom: 2px solid #333; position: sticky; top: 0; z-index: 1000;
+            position: fixed; top: 0; left: 0; right: 0;
+            background: #fff; padding: 15px; text-align: center;
+            border-bottom: 2px solid #000; z-index: 9999; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
-        input { padding: 8px; margin: 5px; border: 1px solid #ccc; border-radius: 4px; }
-        button { padding: 10px 20px; cursor: pointer; border: none; font-weight: bold; border-radius: 4px; margin: 5px; color: white; }
-        .btn-gen { background: #c0392b; }
-        .btn-print { background: #2c3e50; }
-        .btn-pdf { background: #27ae60; }
+        input, button { padding: 10px; margin: 5px; font-size: 14px; border-radius: 4px; border: 1px solid #ccc; }
+        button { cursor: pointer; font-weight: bold; color: white; border: none; }
+        .btn-gen { background: #d32f2f; }
+        .btn-pdf { background: #2e7d32; }
 
-        /* Area di stampa centrata */
-        #print-area { width: 210mm; margin: 0 auto; background: #fff; }
+        /* Contenitore di stampa */
+        #print-area { width: 210mm; margin: 0 auto; background: #fff; padding-top: 80px; }
 
         .page {
             width: 210mm;
             height: 297mm;
-            padding: 10mm 15mm; /* Margini più ampi per centratura perfetta */
+            padding: 12mm 15mm;
             display: flex;
             flex-direction: column;
-            justify-content: flex-start;
+            justify-content: space-between; /* Distribuisce le 4 cartelle in altezza */
             page-break-after: always;
             overflow: hidden;
             background: white;
         }
 
-        /* Forza la rimozione dell'interruzione sull'ultima pagina */
         .page:last-of-type { page-break-after: avoid !important; }
 
         .cartella-wrapper {
             width: 100%;
-            height: 64mm; /* Altezza ridotta per evitare overflow */
-            margin-bottom: 3mm;
+            height: 65mm; /* Altezza calibrata */
             display: flex;
             flex-direction: column;
             justify-content: center;
-            border-bottom: 1px dashed #ccc;
+            border-bottom: 1px dashed #666;
         }
-        .cartella-wrapper:last-child { border-bottom: none; margin-bottom: 0; }
+        .cartella-wrapper:last-child { border-bottom: none; }
 
         .header-row {
             display: flex;
             justify-content: space-between;
             width: 100%;
-            margin-bottom: 3px;
-            font-size: 12px;
+            margin-bottom: 5px;
+            font-size: 14px;
             font-weight: bold;
-            font-family: Arial, sans-serif;
         }
 
         table { 
             width: 100%;
             border-collapse: collapse; 
             table-layout: fixed; 
-            border: 2.5px solid #000;
+            border: 3px solid #000;
         }
         td {
-            border: 1.8px solid #000;
-            height: 17mm; /* Leggermente ridotta per proporzione */
+            border: 2px solid #000;
+            height: 18.5mm; 
             text-align: center;
-            font-size: 40px; 
+            vertical-align: middle;
+            font-size: 46px; /* Numeri massimi */
             font-weight: 900; 
             color: #000;
-            line-height: 1;
             font-family: 'Arial Black', sans-serif;
+            line-height: 1;
         }
         .empty { background-color: #fff; }
 
         @media print {
-            body { background: none; }
             .no-print { display: none; }
-            #print-area { margin: 0; width: 210mm; }
-            .page { border: none; box-shadow: none; }
+            #print-area { padding-top: 0; }
+            body { background: none; }
         }
     </style>
 </head>
 <body>
 
 <div class="no-print">
-    <input type="text" id="titoloInput" value="Tombola Gruppo Giovani V. Nigro Seconda mano">
-    <input type="number" id="qty" value="4" min="1">
-    <button class="btn-gen" onclick="generate()">Genera Nuove</button>
-    <button class="btn-print" onclick="window.print()">Stampa Browser</button>
-    <button class="btn-pdf" onclick="downloadPDF()">Salva PDF Diretto</button>
-    <p style="font-size: 11px; color: #777;">Nota: Se usi "Stampa Browser", imposta Margini su 'Nessuno' nelle opzioni.</p>
+    <input type="text" id="titoloInput" value="Tombola Gruppo Giovani V. Nigro" style="width: 300px;">
+    <input type="number" id="qty" value="4" min="1" style="width: 70px;">
+    <button class="btn-gen" onclick="generate()">GENERA NUOVE</button>
+    <button class="btn-pdf" onclick="downloadPDF()">SCARICA PDF</button>
 </div>
 
 <div id="print-area"></div>
@@ -108,6 +103,7 @@ function createTombolaMatrix() {
         let rowCounts = [0, 0, 0];
         let colCounts = Array(9).fill(0);
 
+        // 1. Garantiamo almeno un numero per ogni colonna
         for (let c = 0; c < 9; c++) {
             let r = Math.floor(Math.random() * 3);
             grid[r][c] = true;
@@ -115,23 +111,28 @@ function createTombolaMatrix() {
             colCounts[c]++;
         }
 
+        // 2. Riempiamo fino a 5 numeri per riga (totale 15)
+        let totalNumbers = 9; 
         let attempts = 0;
-        while (rowCounts.some(count => count < 5) && attempts < 200) {
-            let r = rowCounts.findIndex(count => count < 5);
+        while (totalNumbers < 15 && attempts < 500) {
+            let r = Math.floor(Math.random() * 3);
             let c = Math.floor(Math.random() * 9);
-            if (grid[r][c] === null) {
+            if (grid[r][c] === null && rowCounts[r] < 5) {
                 grid[r][c] = true;
                 rowCounts[r]++;
                 colCounts[c]++;
+                totalNumbers++;
             }
             attempts++;
         }
 
+        // Controllo finale: 5 numeri per riga e ogni colonna occupata
         if (rowCounts.every(count => count === 5) && colCounts.every(count => count > 0)) {
             valid = true;
         }
     }
 
+    // 3. Popolamento con numeri reali ordinati
     let columnsPool = Array.from({ length: 9 }, (_, i) => {
         let min = i === 0 ? 1 : i * 10;
         let max = i === 8 ? 90 : i * 10 + 9;
@@ -172,37 +173,39 @@ function generate() {
         const wrapper = document.createElement('div');
         wrapper.className = 'cartella-wrapper';
 
-        let html = `
+        wrapper.innerHTML = `
             <div class="header-row">
-                <span>N. ${i + 1}</span>
-                <span style="text-transform: uppercase;">${titolo}</span>
+                <span>Cartella N. ${i + 1}</span>
+                <span>${titolo}</span>
             </div>
-            <table>`;
-        
-        matrix.forEach(row => {
-            html += '<tr>';
-            row.forEach(cell => {
-                html += cell ? `<td>${cell}</td>` : '<td class="empty"></td>';
-            });
-            html += '</tr>';
-        });
-
-        html += `</table>`;
-        wrapper.innerHTML = html;
+            <table>
+                ${matrix.map(row => `
+                    <tr>
+                        ${row.map(cell => cell ? `<td>${cell}</td>` : `<td class="empty"></td>`).join('')}
+                    </tr>
+                `).join('')}
+            </table>
+        `;
         currentPage.appendChild(wrapper);
     }
 }
 
 function downloadPDF() {
     const element = document.getElementById('print-area');
+    // Nascondiamo temporaneamente il padding dell'area di stampa per il PDF
+    element.style.paddingTop = '0';
+    
     const opt = {
         margin: 0,
-        filename: 'cartelle_tombola.pdf',
+        filename: 'tombola_professionale.pdf',
         image: { type: 'jpeg', quality: 1 },
-        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        html2canvas: { scale: 2, logging: false },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
-    html2pdf().set(opt).from(element).save();
+
+    html2pdf().set(opt).from(element).save().then(() => {
+        element.style.paddingTop = '80px'; // Ripristiniamo per la visualizzazione web
+    });
 }
 
 generate();
