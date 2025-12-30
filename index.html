@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Generatore cartelle GG - Pro Edition</title>
+    <title>Generatore cartelle GG - Layout Simmetrico</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -20,11 +20,10 @@
         
         #preview-area { display: flex; flex-direction: column; align-items: center; padding: 20px; }
         
-        /* Modifica qui per evitare il taglio in anteprima */
         .preview-page { 
             background: white; 
             width: 210mm; 
-            min-height: 297mm; /* Minima altezza A4, ma può espandersi se serve */
+            min-height: 297mm; 
             margin-bottom: 20px; 
             box-shadow: 0 0 10px rgba(0,0,0,0.2);
             padding: 10mm; 
@@ -35,7 +34,7 @@
         
         .preview-cartella { 
             width: 189mm; 
-            margin: 0 auto 10mm auto; /* Margine ridotto per stare in pagina */
+            margin: 0 auto 12mm auto; 
         }
         
         .preview-header { 
@@ -49,7 +48,7 @@
             font-size: 34px; font-weight: 900; font-family: sans-serif;
         }
         .empty { background: #fff; }
-        .cut-line { border-bottom: 1px dashed #aaa; margin: 5mm 0; width: 100%; }
+        .cut-line { border-bottom: 1px dashed #aaa; margin: 6mm 0; width: 100%; }
     </style>
 </head>
 <body>
@@ -135,7 +134,6 @@ function generateSestina() {
                     for(let col = 0; col < 9; col++) {
                         if(sestina[cardIdx][0][col] && sestina[cardIdx][1][col] && sestina[cardIdx][2][col]) colsWith3++;
                     }
-
                     let rows = shuffle([0, 1, 2]);
                     for (let r of rows) {
                         let rowCount = sestina[cardIdx][r].filter(x => x !== null).length;
@@ -170,8 +168,7 @@ function generateSestina() {
             let totalValid = sestina.every(matrix => {
                 let hash = getCardHash(matrix);
                 let isUnique = !usedHashes.has(hash);
-                let rowsOk = matrix.every(row => row.filter(x => x !== null).length === 5);
-                return isUnique && rowsOk;
+                return isUnique && matrix.every(row => row.filter(x => x !== null).length === 5);
             });
             if (totalValid) {
                 sestina.forEach(m => usedHashes.add(getCardHash(m)));
@@ -236,12 +233,16 @@ function generatePDF() {
     const doc = new jsPDF('p', 'mm', 'a4');
     const titolo = document.getElementById('titoloInput').value;
     const cellW = 21, cellH = 18, cardWidth = 189, marginX = (210 - cardWidth) / 2;
-    const headerH = 7, stepY = 70; 
+    const headerH = 7;
+    const stepY = 72; // Spazio verticale aumentato per simmetria
 
     currentCartelle.forEach((matrix, i) => {
         const pageIdx = i % 4;
         if (i > 0 && pageIdx === 0) doc.addPage();
-        const startY = 15 + (pageIdx * stepY);
+        
+        // startY regolato per centrare il blocco delle 4 cartelle nella pagina
+        const startY = 12 + (pageIdx * stepY);
+        
         doc.setLineWidth(0.5);
         doc.rect(marginX, startY - headerH, cardWidth, headerH);
         doc.setFont("helvetica", "bold");
@@ -249,8 +250,10 @@ function generatePDF() {
         doc.text(titolo, marginX + 3, startY - 2.5);
         doc.setFont("helvetica", "normal");
         doc.text(`${i + 1}`, marginX + cardWidth - 3, startY - 2.5, { align: "right" });
+        
         for (let r = 0; r <= 3; r++) doc.line(marginX, startY + (r * cellH), marginX + cardWidth, startY + (r * cellH));
         for (let c = 0; c <= 9; c++) doc.line(marginX + (c * cellW), startY, marginX + (c * cellW), startY + (3 * cellH));
+        
         doc.setFont("helvetica", "bold");
         doc.setFontSize(36);
         matrix.forEach((row, rIdx) => {
@@ -262,10 +265,13 @@ function generatePDF() {
                 }
             });
         });
+        
+        // Linea di taglio posizionata esattamente a metà dello spazio tra cartelle
         if (pageIdx < 3) {
             doc.setLineWidth(0.1);
             doc.setLineDashPattern([2, 2], 0);
-            doc.line(5, startY + (cellH * 3) + 6, 205, startY + (cellH * 3) + 6);
+            const lineY = startY + (cellH * 3) + ((stepY - (cellH * 3) - headerH) / 2) + 2;
+            doc.line(5, lineY, 205, lineY);
             doc.setLineDashPattern([], 0);
         }
     });
