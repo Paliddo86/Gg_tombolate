@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Generatore cartelle GG - Layout Simmetrico</title>
+    <title>Generatore cartelle GG - Distribuzione Totale</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -23,18 +23,28 @@
         .preview-page { 
             background: white; 
             width: 210mm; 
-            min-height: 297mm; 
+            height: 297mm; /* Fissa per l'anteprima fedele */
             margin-bottom: 20px; 
             box-shadow: 0 0 10px rgba(0,0,0,0.2);
-            padding: 10mm; 
+            padding: 0; 
             overflow: hidden;
             display: flex;
             flex-direction: column;
         }
         
+        /* Contenitore che occupa esattamente 1/4 della pagina */
+        .preview-slot {
+            height: 74.25mm;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
         .preview-cartella { 
             width: 189mm; 
-            margin: 0 auto 12mm auto; 
         }
         
         .preview-header { 
@@ -48,7 +58,15 @@
             font-size: 34px; font-weight: 900; font-family: sans-serif;
         }
         .empty { background: #fff; }
-        .cut-line { border-bottom: 1px dashed #aaa; margin: 6mm 0; width: 100%; }
+        
+        /* Linea di taglio posizionata in fondo allo slot */
+        .cut-line { 
+            position: absolute;
+            bottom: 0;
+            left: 5mm;
+            right: 5mm;
+            border-bottom: 1px dashed #aaa; 
+        }
     </style>
 </head>
 <body>
@@ -56,7 +74,7 @@
 <div class="no-print">
     <div class="controls">
         <div style="text-align:left">
-            <label style="font-size:12px; font-weight:bold">TITOLO (Maiuscole/Minuscole come scritte)</label><br>
+            <label style="font-size:12px; font-weight:bold">TITOLO</label><br>
             <input type="text" id="titoloInput" value="Tombola Gruppo Giovani V. Nigro - Prima mano" style="width: 350px;">
         </div>
         <div style="text-align:left">
@@ -90,12 +108,8 @@ function getCardHash(matrix) {
 function generateSestina() {
     let success = false;
     let sestina = [];
-
     while (!success) {
-        sestina = Array.from({ length: 6 }, () => 
-            Array.from({ length: 3 }, () => Array(9).fill(null))
-        );
-
+        sestina = Array.from({ length: 6 }, () => Array.from({ length: 3 }, () => Array(9).fill(null)));
         let numbersByCol = Array.from({ length: 9 }, (_, i) => {
             let min = (i === 0) ? 1 : i * 10;
             let max = (i === 8) ? 90 : i * 10 + 9;
@@ -103,12 +117,10 @@ function generateSestina() {
             for (let n = min; n <= max; n++) list.push(n);
             return shuffle(list);
         });
-
         let possible = true;
         for (let c = 0; c < 9; c++) {
             let colNums = numbersByCol[c];
             let cardIndices = shuffle([0, 1, 2, 3, 4, 5]);
-            
             for (let cardIdx of cardIndices) {
                 let n = colNums.pop();
                 let rows = shuffle([0, 1, 2]);
@@ -124,7 +136,6 @@ function generateSestina() {
                 if (!placed) { possible = false; break; }
             }
             if (!possible) break;
-
             while (colNums.length > 0) {
                 let n = colNums.pop();
                 let cardIndicesReshuffled = shuffle([0, 1, 2, 3, 4, 5]);
@@ -163,12 +174,10 @@ function generateSestina() {
             }
             if (!possible) break;
         }
-
         if (possible) {
             let totalValid = sestina.every(matrix => {
                 let hash = getCardHash(matrix);
-                let isUnique = !usedHashes.has(hash);
-                return isUnique && matrix.every(row => row.filter(x => x !== null).length === 5);
+                return !usedHashes.has(hash) && matrix.every(row => row.filter(x => x !== null).length === 5);
             });
             if (totalValid) {
                 sestina.forEach(m => usedHashes.add(getCardHash(m)));
@@ -176,7 +185,6 @@ function generateSestina() {
             }
         }
     }
-
     sestina.forEach(matrix => {
         for (let c = 0; c < 9; c++) {
             let vals = [];
@@ -194,7 +202,6 @@ function renderPreview() {
     const qty = parseInt(document.getElementById('qty').value);
     const titolo = document.getElementById('titoloInput').value;
     area.innerHTML = ''; currentCartelle = []; usedHashes.clear();
-
     let generated = 0;
     while (generated < qty) {
         let sestina = generateSestina();
@@ -203,7 +210,6 @@ function renderPreview() {
             generated++;
         }
     }
-
     let currentPageDiv;
     for (let i = 0; i < currentCartelle.length; i++) {
         if (i % 4 === 0) {
@@ -212,19 +218,21 @@ function renderPreview() {
             area.appendChild(currentPageDiv);
         }
         const matrix = currentCartelle[i];
-        const wrapper = document.createElement('div');
-        wrapper.className = 'preview-cartella';
-        wrapper.innerHTML = `
-            <div class="preview-header">
-                <span>${titolo}</span>
-                <span style="color: #333;">${i+1}</span>
+        const slot = document.createElement('div');
+        slot.className = 'preview-slot';
+        slot.innerHTML = `
+            <div class="preview-cartella">
+                <div class="preview-header">
+                    <span>${titolo}</span>
+                    <span style="color: #333;">${i+1}</span>
+                </div>
+                <table class="preview-table">
+                    ${matrix.map(row => `<tr>${row.map(c => `<td class="${c?'':'empty'}">${c||''}</td>`).join('')}</tr>`).join('')}
+                </table>
             </div>
-            <table class="preview-table">
-                ${matrix.map(row => `<tr>${row.map(c => `<td class="${c?'':'empty'}">${c||''}</td>`).join('')}</tr>`).join('')}
-            </table>
-            ${(i + 1) % 4 !== 0 && (i + 1) < currentCartelle.length ? '<div class="cut-line"></div>' : ''}
+            ${(i + 1) % 4 !== 0 ? '<div class="cut-line"></div>' : ''}
         `;
-        currentPageDiv.appendChild(wrapper);
+        currentPageDiv.appendChild(slot);
     }
 }
 
@@ -234,14 +242,16 @@ function generatePDF() {
     const titolo = document.getElementById('titoloInput').value;
     const cellW = 21, cellH = 18, cardWidth = 189, marginX = (210 - cardWidth) / 2;
     const headerH = 7;
-    const stepY = 72; // Spazio verticale aumentato per simmetria
+    const stepY = 74.25; // Divisione millimetrica perfetta (297 / 4)
 
     currentCartelle.forEach((matrix, i) => {
         const pageIdx = i % 4;
         if (i > 0 && pageIdx === 0) doc.addPage();
         
-        // startY regolato per centrare il blocco delle 4 cartelle nella pagina
-        const startY = 12 + (pageIdx * stepY);
+        // Centratura verticale della cartella nello slot da 74.25mm
+        // (74.25 - (18*3 + 7)) / 2 = circa 5.1mm di margine interno allo slot
+        const slotTopY = pageIdx * stepY;
+        const startY = slotTopY + 11.5; 
         
         doc.setLineWidth(0.5);
         doc.rect(marginX, startY - headerH, cardWidth, headerH);
@@ -266,16 +276,15 @@ function generatePDF() {
             });
         });
         
-        // Linea di taglio posizionata esattamente a metà dello spazio tra cartelle
         if (pageIdx < 3) {
             doc.setLineWidth(0.1);
             doc.setLineDashPattern([2, 2], 0);
-            const lineY = startY + (cellH * 3) + ((stepY - (cellH * 3) - headerH) / 2) + 2;
+            const lineY = (pageIdx + 1) * stepY;
             doc.line(5, lineY, 205, lineY);
             doc.setLineDashPattern([], 0);
         }
     });
-    doc.save(titolo + "_" + currentCartelle.length + ".pdf");
+    doc.save(titolo + ".pdf");
 }
 renderPreview();
 </script>
